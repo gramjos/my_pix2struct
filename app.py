@@ -1,14 +1,20 @@
-"""
- collect user input: document and questions
-    - document: pdf, png, jpg, jpeg
-    - question: delineated by new line in the text box
-"""
-import gradio as gr
+"""Gradio interface for running the Pix2Struct DocVQA model."""
+
+from __future__ import annotations
+
 import os
 
-def collect_inputs(file_obj, texts):
-    """
-    Process the uploaded file and questions.
+
+import gradio as gr
+from pix2struct_base_run import load_model, run_doc_vqa
+
+MODEL, PROCESSOR = load_model()
+
+def collect_inputs(file_obj: gr.File, texts: str) -> str:
+    """Validate inputs and run the model on them.
+
+    Usage:
+        result = collect_inputs(file_obj, "Question?")
     """
     if file_obj is None:
         return "Please upload a file first."
@@ -18,19 +24,26 @@ def collect_inputs(file_obj, texts):
     file_ext = os.path.splitext(file_path)[1].lower()
 
     # Validate file type
-    allowed_extensions = ['.pdf', '.png', '.jpg', '.jpeg']
+    allowed_extensions = [".pdf", ".png", ".jpg", ".jpeg"]
     if file_ext not in allowed_extensions:
-        return f"Invalid file type. Please upload one of: {', '.join(allowed_extensions)}"
+        return (
+            "Invalid file type. Please upload one of: "
+            + ", ".join(allowed_extensions)
+        )
 
     # Process questions
     questions = [line.strip() for line in texts.splitlines() if line.strip()]
     if not questions:
         return "Please enter at least one question."
 
-    # results = run_doc_vqa(file_path, questions, page_no=1)
-    # return "\n".join(f"{q}: {a}" for q, a in results)
-
-    return f"File uploaded: {file_path}\n\nQuestions:\n" + "\n".join(questions)
+    results = run_doc_vqa(
+        file_path,
+        questions,
+        page_no=1,
+        model=MODEL,
+        processor=PROCESSOR,
+    )
+    return "\n".join(f"{q}: {a}" for q, a in results)
 
 
 with gr.Blocks() as demo:
@@ -67,4 +80,5 @@ with gr.Blocks() as demo:
                 interactive=False
             )
 
-demo.launch()
+if __name__ == "__main__":
+    demo.launch()
